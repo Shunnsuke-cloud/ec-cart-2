@@ -359,8 +359,64 @@ h2 {
     background: #b91c1c;
 }
 
+.checkout-layout {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr 320px;
+    align-items: start;
+}
+
+.checkout-items {
+    overflow-x: auto;
+}
+
+.order-summary {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.order-summary h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+}
+
+.order-summary dl {
+    margin: 0;
+}
+
+.order-summary dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.order-summary dt,
+.order-summary dd {
+    margin: 0;
+}
+
+.order-summary .summary-total {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 1.05rem;
+}
+
+.summary-note {
+    margin: 0.8rem 0;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
 @media (max-width: 820px) {
     .product-detail {
+        grid-template-columns: 1fr;
+    }
+
+    .checkout-layout {
         grid-template-columns: 1fr;
     }
 }
