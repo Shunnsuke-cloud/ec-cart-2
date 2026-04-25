@@ -181,6 +181,24 @@ require_once __DIR__ . '/../views/layout/header.php';
                                 <?php echo ((int)$selectedVariant['stock'] > 0) ? '在庫あり' : '在庫なし'; ?>
                             </p>
                         </div>
+
+                        <form method="post" action="cart.php" class="add-to-cart-form">
+                            <input type="hidden" name="variant_id" value="<?php echo (int)$selectedVariant['id']; ?>">
+
+                            <label for="quantity">数量</label>
+                            <input
+                                id="quantity"
+                                name="quantity"
+                                type="number"
+                                min="1"
+                                value="1"
+                                <?php echo ((int)$selectedVariant['stock'] > 0) ? '' : 'disabled'; ?>
+                            >
+
+                            <button class="button" type="submit" <?php echo ((int)$selectedVariant['stock'] > 0) ? '' : 'disabled'; ?>>
+                                カートに追加
+                            </button>
+                        </form>
                     <?php endif; ?>
                 <?php else: ?>
                     <p class="notice">この商品にはSKU情報がありません。</p>
