@@ -415,6 +415,24 @@ h2 {
     margin-top: 0.75rem;
 }
 
+.auth-form {
+    display: grid;
+    gap: 0.55rem;
+    max-width: 420px;
+}
+
+.auth-form label {
+    font-weight: 600;
+    color: #334155;
+}
+
+.auth-form input {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.95rem;
+}
+
 @media (max-width: 820px) {
     .product-detail {
         grid-template-columns: 1fr;

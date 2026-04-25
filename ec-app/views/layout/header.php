@@ -20,6 +20,7 @@ $activePage = $activePage ?? '';
 					<li><a class="<?php echo $activePage === 'product' ? 'is-active' : ''; ?>" href="product.php">商品</a></li>
 					<li><a class="<?php echo $activePage === 'cart' ? 'is-active' : ''; ?>" href="cart.php">カート</a></li>
 					<li><a class="<?php echo $activePage === 'checkout' ? 'is-active' : ''; ?>" href="checkout.php">購入手続き</a></li>
+					<li><a class="<?php echo $activePage === 'register' ? 'is-active' : ''; ?>" href="register.php">会員登録</a></li>
 				</ul>
 			</nav>
 		</div>
