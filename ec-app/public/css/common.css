@@ -411,6 +411,10 @@ h2 {
     font-size: 0.85rem;
 }
 
+.order-submit-form {
+    margin-top: 0.75rem;
+}
+
 @media (max-width: 820px) {
     .product-detail {
         grid-template-columns: 1fr;
