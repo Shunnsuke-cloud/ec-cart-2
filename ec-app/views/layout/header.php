@@ -1,6 +1,13 @@
 <?php
 $pageTitle = $pageTitle ?? 'EC Cart';
 $activePage = $activePage ?? '';
+
+if (session_status() === PHP_SESSION_NONE) {
+	session_start();
+}
+
+$isLoggedIn = isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0;
+$loginUserName = isset($_SESSION['user_name']) ? (string)$_SESSION['user_name'] : '';
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -20,7 +27,13 @@ $activePage = $activePage ?? '';
 					<li><a class="<?php echo $activePage === 'product' ? 'is-active' : ''; ?>" href="product.php">商品</a></li>
 					<li><a class="<?php echo $activePage === 'cart' ? 'is-active' : ''; ?>" href="cart.php">カート</a></li>
 					<li><a class="<?php echo $activePage === 'checkout' ? 'is-active' : ''; ?>" href="checkout.php">購入手続き</a></li>
-					<li><a class="<?php echo $activePage === 'register' ? 'is-active' : ''; ?>" href="register.php">会員登録</a></li>
+					<?php if ($isLoggedIn): ?>
+						<li><span class="nav-user"><?php echo htmlspecialchars($loginUserName, ENT_QUOTES, 'UTF-8'); ?>さん</span></li>
+						<li><a href="logout.php">ログアウト</a></li>
+					<?php else: ?>
+						<li><a class="<?php echo $activePage === 'register' ? 'is-active' : ''; ?>" href="register.php">会員登録</a></li>
+						<li><a class="<?php echo $activePage === 'login' ? 'is-active' : ''; ?>" href="login.php">ログイン</a></li>
+					<?php endif; ?>
 				</ul>
 			</nav>
 		</div>

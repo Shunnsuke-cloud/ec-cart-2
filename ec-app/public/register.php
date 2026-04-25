@@ -62,7 +62,7 @@ SQL
             'status' => 'active',
         ]);
 
-        header('Location: register.php?registered=1');
+        header('Location: login.php?registered=1');
         exit;
     } catch (Throwable $e) {
         $errorMessage = $e instanceof RuntimeException
