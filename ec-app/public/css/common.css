@@ -62,6 +62,12 @@ body {
     color: #fff;
 }
 
+.nav-user {
+    display: inline-block;
+    padding: 0.5rem 0.75rem;
+    color: #cbd5e1;
+}
+
 .site-main {
     padding: 2rem 0;
     min-height: calc(100vh - 160px);
