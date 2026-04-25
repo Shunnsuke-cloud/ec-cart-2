@@ -10,15 +10,81 @@ $cartItems = [];
 $cartTotal = 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-	$variantId = isset($_POST['variant_id']) ? (int)$_POST['variant_id'] : 0;
-	$quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
-	if ($quantity < 1) {
-		$quantity = 1;
-	}
+	$action = isset($_POST['action']) ? (string)$_POST['action'] : 'add';
 
-	if ($variantId <= 0) {
-		$errorMessage = '追加対象のSKUが不正です。';
+	if ($action === 'update_quantity') {
+		$cartItemId = isset($_POST['cart_item_id']) ? (int)$_POST['cart_item_id'] : 0;
+		$quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+		if ($quantity < 1) {
+			$quantity = 1;
+		}
+
+		if ($cartItemId <= 0) {
+			$errorMessage = '更新対象のカート商品が不正です。';
+		} else {
+			$sessionId = session_id();
+
+			try {
+				$pdo->beginTransaction();
+
+				$stmtTarget = $pdo->prepare(
+					<<<'SQL'
+SELECT
+	ci.id,
+	pv.stock
+FROM carts c
+INNER JOIN cart_items ci ON ci.cart_id = c.id
+INNER JOIN product_variants pv ON pv.id = ci.product_variant_id
+WHERE c.session_id = :session_id
+	AND c.user_id IS NULL
+	AND ci.id = :cart_item_id
+LIMIT 1
+SQL
+				);
+				$stmtTarget->execute([
+					'session_id' => $sessionId,
+					'cart_item_id' => $cartItemId,
+				]);
+				$targetItem = $stmtTarget->fetch();
+
+				if (!$targetItem) {
+					throw new RuntimeException('更新対象の商品が見つかりません。');
+				}
+
+				if ($quantity > (int)$targetItem['stock']) {
+					throw new RuntimeException('在庫数を超える数量には変更できません。');
+				}
+
+				$stmtUpdate = $pdo->prepare(
+					'UPDATE cart_items SET quantity = :quantity WHERE id = :id'
+				);
+				$stmtUpdate->execute([
+					'quantity' => $quantity,
+					'id' => $cartItemId,
+				]);
+
+				$pdo->commit();
+				header('Location: cart.php?updated=1');
+				exit;
+			} catch (Throwable $e) {
+				if ($pdo->inTransaction()) {
+					$pdo->rollBack();
+				}
+				$errorMessage = $e instanceof RuntimeException
+					? $e->getMessage()
+					: '数量変更に失敗しました。時間をおいて再度お試しください。';
+			}
+		}
 	} else {
+		$variantId = isset($_POST['variant_id']) ? (int)$_POST['variant_id'] : 0;
+		$quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+		if ($quantity < 1) {
+			$quantity = 1;
+		}
+
+		if ($variantId <= 0) {
+			$errorMessage = '追加対象のSKUが不正です。';
+		} else {
 		$sessionId = session_id();
 
 		try {
@@ -105,11 +171,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				? $e->getMessage()
 				: 'カート追加に失敗しました。時間をおいて再度お試しください。';
 		}
+		}
 	}
 }
 
 if (isset($_GET['added']) && $_GET['added'] === '1') {
 	$noticeMessage = '商品をカートに追加しました。';
+}
+
+if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+	$noticeMessage = '数量を更新しました。';
 }
 
 try {
@@ -186,7 +257,14 @@ require_once __DIR__ . '/../views/layout/header.php';
 							</td>
 							<td><?php echo htmlspecialchars((string)$item['sku'], ENT_QUOTES, 'UTF-8'); ?></td>
 							<td><?php echo number_format((int)$item['price']); ?>円</td>
-							<td><?php echo (int)$item['quantity']; ?></td>
+							<td>
+								<form method="post" class="cart-qty-form">
+									<input type="hidden" name="action" value="update_quantity">
+									<input type="hidden" name="cart_item_id" value="<?php echo (int)$item['id']; ?>">
+									<input type="number" name="quantity" min="1" value="<?php echo (int)$item['quantity']; ?>">
+									<button type="submit" class="button">変更</button>
+								</form>
+							</td>
 							<td><?php echo number_format((int)$item['line_total']); ?>円</td>
 						</tr>
 					<?php endforeach; ?>
