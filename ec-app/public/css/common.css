@@ -346,6 +346,19 @@ h2 {
     font-size: 0.8rem;
 }
 
+.cart-delete-form {
+    display: inline-block;
+}
+
+.button.button-danger {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+.button.button-danger:hover {
+    background: #b91c1c;
+}
+
 @media (max-width: 820px) {
     .product-detail {
         grid-template-columns: 1fr;

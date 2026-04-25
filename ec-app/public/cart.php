@@ -75,6 +75,42 @@ SQL
 					: '数量変更に失敗しました。時間をおいて再度お試しください。';
 			}
 		}
+	} elseif ($action === 'delete_item') {
+		$cartItemId = isset($_POST['cart_item_id']) ? (int)$_POST['cart_item_id'] : 0;
+
+		if ($cartItemId <= 0) {
+			$errorMessage = '削除対象のカート商品が不正です。';
+		} else {
+			$sessionId = session_id();
+
+			try {
+				$stmtDelete = $pdo->prepare(
+					<<<'SQL'
+DELETE ci
+FROM cart_items ci
+INNER JOIN carts c ON c.id = ci.cart_id
+WHERE ci.id = :cart_item_id
+	AND c.session_id = :session_id
+	AND c.user_id IS NULL
+SQL
+				);
+				$stmtDelete->execute([
+					'cart_item_id' => $cartItemId,
+					'session_id' => $sessionId,
+				]);
+
+				if ($stmtDelete->rowCount() < 1) {
+					throw new RuntimeException('削除対象の商品が見つかりません。');
+				}
+
+				header('Location: cart.php?deleted=1');
+				exit;
+			} catch (Throwable $e) {
+				$errorMessage = $e instanceof RuntimeException
+					? $e->getMessage()
+					: '商品削除に失敗しました。時間をおいて再度お試しください。';
+			}
+		}
 	} else {
 		$variantId = isset($_POST['variant_id']) ? (int)$_POST['variant_id'] : 0;
 		$quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
@@ -183,6 +219,10 @@ if (isset($_GET['updated']) && $_GET['updated'] === '1') {
 	$noticeMessage = '数量を更新しました。';
 }
 
+if (isset($_GET['deleted']) && $_GET['deleted'] === '1') {
+	$noticeMessage = '商品をカートから削除しました。';
+}
+
 try {
 	$sessionId = session_id();
 	$stmtItems = $pdo->prepare(
@@ -241,6 +281,7 @@ require_once __DIR__ . '/../views/layout/header.php';
 						<th>単価</th>
 						<th>数量</th>
 						<th>小計</th>
+						<th>操作</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -266,12 +307,19 @@ require_once __DIR__ . '/../views/layout/header.php';
 								</form>
 							</td>
 							<td><?php echo number_format((int)$item['line_total']); ?>円</td>
+							<td>
+								<form method="post" class="cart-delete-form" onsubmit="return confirm('この商品をカートから削除しますか？');">
+									<input type="hidden" name="action" value="delete_item">
+									<input type="hidden" name="cart_item_id" value="<?php echo (int)$item['id']; ?>">
+									<button type="submit" class="button button-danger">削除</button>
+								</form>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
 				<tfoot>
 					<tr>
-						<th colspan="4">合計</th>
+						<th colspan="5">合計</th>
 						<th><?php echo number_format($cartTotal); ?>円</th>
 					</tr>
 				</tfoot>
