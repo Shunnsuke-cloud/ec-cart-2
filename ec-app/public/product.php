@@ -61,7 +61,9 @@ require_once __DIR__ . '/../views/layout/header.php';
 				<article class="product-card">
 					<div class="product-card-image-wrap">
 						<?php if (!empty($product['main_image'])): ?>
-							<img class="product-card-image" src="<?php echo htmlspecialchars((string)$product['main_image'], ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars((string)$product['name'], ENT_QUOTES, 'UTF-8'); ?>">
+							<a href="product_detail.php?slug=<?php echo urlencode((string)$product['slug']); ?>">
+								<img class="product-card-image" src="<?php echo htmlspecialchars((string)$product['main_image'], ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars((string)$product['name'], ENT_QUOTES, 'UTF-8'); ?>">
+							</a>
 						<?php else: ?>
 							<div class="product-card-image placeholder">NO IMAGE</div>
 						<?php endif; ?>
@@ -73,6 +75,9 @@ require_once __DIR__ . '/../views/layout/header.php';
 						<p class="product-price"><?php echo htmlspecialchars($priceText, ENT_QUOTES, 'UTF-8'); ?></p>
 						<p class="stock-status <?php echo $isInStock ? 'in-stock' : 'out-of-stock'; ?>">
 							<?php echo $isInStock ? '在庫あり' : '在庫なし'; ?>
+						</p>
+						<p class="product-actions">
+							<a class="button" href="product_detail.php?slug=<?php echo urlencode((string)$product['slug']); ?>">商品詳細を見る</a>
 						</p>
 					</div>
 				</article>
