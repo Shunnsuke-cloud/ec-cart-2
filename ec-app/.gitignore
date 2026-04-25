@@ -1,3 +1,4 @@
 vendor/
 storage/logs/
 storage/uploads/
+/config/database.php
