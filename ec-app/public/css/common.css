@@ -439,12 +439,65 @@ h2 {
     font-size: 0.95rem;
 }
 
+.address-layout {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+}
+
+.address-form {
+    max-width: none;
+}
+
+.checkbox-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.address-list-wrap h3 {
+    margin-top: 0;
+}
+
+.address-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.address-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem;
+    background: #fff;
+}
+
+.address-card p {
+    margin: 0.2rem 0;
+}
+
+.address-flag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0f172a;
+    background: #e2e8f0;
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+}
+
 @media (max-width: 820px) {
     .product-detail {
         grid-template-columns: 1fr;
     }
 
     .checkout-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .address-layout {
         grid-template-columns: 1fr;
     }
 }
