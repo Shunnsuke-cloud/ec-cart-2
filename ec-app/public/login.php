@@ -2,7 +2,8 @@
 $pageTitle = 'ログイン';
 $activePage = 'login';
 
-session_start();
+require_once __DIR__ . '/../app/Auth/session.php';
+app_session_start();
 require_once __DIR__ . '/../config/database.php';
 
 $errorMessage = '';
@@ -52,10 +53,7 @@ SQL
             throw new RuntimeException('このアカウントは利用できません。');
         }
 
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = (int)$user['id'];
-        $_SESSION['user_name'] = (string)$user['name'];
-        $_SESSION['user_email'] = (string)$user['email'];
+        app_session_login((int)$user['id'], (string)$user['name'], (string)$user['email']);
 
         header('Location: index.php?logged_in=1');
         exit;

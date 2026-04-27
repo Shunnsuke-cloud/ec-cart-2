@@ -2,9 +2,8 @@
 $pageTitle = $pageTitle ?? 'EC Cart';
 $activePage = $activePage ?? '';
 
-if (session_status() === PHP_SESSION_NONE) {
-	session_start();
-}
+require_once __DIR__ . '/../../app/Auth/session.php';
+app_session_start();
 
 $isLoggedIn = isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0;
 $loginUserName = isset($_SESSION['user_name']) ? (string)$_SESSION['user_name'] : '';
