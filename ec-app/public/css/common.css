@@ -421,6 +421,29 @@ h2 {
     margin-top: 0.75rem;
 }
 
+.payment-card-fields {
+    display: grid;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+}
+
+.payment-card-fields label {
+    font-weight: 600;
+    color: #334155;
+}
+
+.payment-card-fields input {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.95rem;
+    background: #fff;
+}
+
+.token-error {
+    margin: 0 0 0.75rem;
+}
+
 .auth-form {
     display: grid;
     gap: 0.55rem;

@@ -51,8 +51,13 @@ SQL
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'place_order') {
 	$sessionId = session_id();
+	$cardToken = trim((string)($_POST['card_token'] ?? ''));
 
 	try {
+		if ($cardToken === '') {
+			throw new RuntimeException('カード情報のトークン化に失敗しました。入力内容を確認してください。');
+		}
+
 		$pdo->beginTransaction();
 
 		$stmtCart = $pdo->prepare(
@@ -203,24 +208,36 @@ SQL
 INSERT INTO payments (
 	order_id,
 	payment_method,
+	transaction_id,
 	amount,
 	status,
-	provider
+	provider,
+	raw_response
 ) VALUES (
 	:order_id,
 	:payment_method,
+	:transaction_id,
 	:amount,
 	:status,
-	:provider
+	:provider,
+	:raw_response
 )
 SQL
 		);
+		$rawPaymentResponse = json_encode([
+			'card_token' => $cardToken,
+		], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		if ($rawPaymentResponse === false) {
+			$rawPaymentResponse = '{}';
+		}
 		$stmtPayment->execute([
 			'order_id' => $orderId,
 			'payment_method' => 'credit_card',
+			'transaction_id' => $cardToken,
 			'amount' => $orderTotalAmount,
 			'status' => 'pending',
 			'provider' => 'PAY.JP',
+			'raw_response' => $rawPaymentResponse,
 		]);
 
 		$stmtClearCart = $pdo->prepare('DELETE FROM cart_items WHERE cart_id = :cart_id');
@@ -358,13 +375,36 @@ require_once __DIR__ . '/../views/layout/header.php';
 
 				<p class="summary-note">※ 小計5,000円以上で送料無料です。</p>
 				<p class="product-actions"><a class="button" href="cart.php">カートへ戻る</a></p>
-				<form method="post" class="order-submit-form" onsubmit="return confirm('この内容で注文を確定しますか？');">
+				<form method="post" class="order-submit-form" id="order-submit-form">
 					<input type="hidden" name="action" value="place_order">
+					<input type="hidden" name="card_token" id="card-token" value="">
+
+					<div class="payment-card-fields">
+						<label for="card-number">カード番号</label>
+						<input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="4242424242424242" maxlength="19">
+
+						<label for="card-exp-month">有効期限（月）</label>
+						<input id="card-exp-month" type="text" inputmode="numeric" autocomplete="cc-exp-month" placeholder="12" maxlength="2">
+
+						<label for="card-exp-year">有効期限（年）</label>
+						<input id="card-exp-year" type="text" inputmode="numeric" autocomplete="cc-exp-year" placeholder="29" maxlength="2">
+
+						<label for="card-cvc">CVC</label>
+						<input id="card-cvc" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4">
+
+						<label for="card-name">カード名義</label>
+						<input id="card-name" type="text" autocomplete="cc-name" placeholder="TARO YAMADA">
+					</div>
+
+					<p class="notice error token-error" id="token-error" hidden></p>
 					<button class="button" type="submit">注文を確定する</button>
 				</form>
 			</aside>
 		</div>
 	<?php endif; ?>
 </section>
+
+<script src="https://js.pay.jp/v2/pay.js"></script>
+<script src="js/checkout.js"></script>
 
 <?php require_once __DIR__ . '/../views/layout/footer.php'; ?>
