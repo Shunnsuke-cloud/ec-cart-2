@@ -3,3 +3,4 @@ storage/logs/
 storage/uploads/
 /config/database.php
 /config/app.local.php
+/config/payjp.php

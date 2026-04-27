@@ -5,8 +5,16 @@ require_once __DIR__ . '/../app/Auth/session.php';
 app_session_start();
 require_once __DIR__ . '/../config/database.php';
 
-$appConfig = require __DIR__ . '/../config/app.php';
-$payjpPublicKey = isset($appConfig['payjp']['public_key']) ? trim((string)$appConfig['payjp']['public_key']) : '';
+$payjpConfig = [];
+$payjpConfigPath = __DIR__ . '/../config/payjp.php';
+if (is_file($payjpConfigPath)) {
+	$loadedPayjpConfig = require $payjpConfigPath;
+	if (is_array($loadedPayjpConfig)) {
+		$payjpConfig = $loadedPayjpConfig;
+	}
+}
+
+$payjpPublicKey = isset($payjpConfig['public_key']) ? trim((string)$payjpConfig['public_key']) : '';
 
 $errorMessage = '';
 $noticeMessage = '';
@@ -53,20 +61,14 @@ SQL
 }
 
 /**
- * 環境変数からPAY.JP秘密鍵を取得します。
+ * config/payjp.php からPAY.JP秘密鍵を取得します。
  */
-function getPayjpSecretKey(array $appConfig): string
+function getPayjpSecretKey(array $payjpConfig): string
 {
-	$secretKey = isset($appConfig['payjp']['secret_key']) ? trim((string)$appConfig['payjp']['secret_key']) : '';
-	if ($secretKey === '') {
-		$envSecret = getenv('PAYJP_SECRET_KEY');
-		if ($envSecret !== false) {
-			$secretKey = trim((string)$envSecret);
-		}
-	}
+	$secretKey = isset($payjpConfig['secret_key']) ? trim((string)$payjpConfig['secret_key']) : '';
 
 	if ($secretKey === '') {
-		throw new RuntimeException('PAY.JP秘密鍵が未設定です。config/app.local.php または環境変数 PAYJP_SECRET_KEY を設定してください。');
+		throw new RuntimeException('PAY.JP秘密鍵が未設定です。config/payjp.php を作成して secret_key を設定してください。');
 	}
 
 	return $secretKey;
@@ -75,7 +77,7 @@ function getPayjpSecretKey(array $appConfig): string
 /**
  * PAY.JPでカード決済を実行し、APIレスポンス配列を返します。
  */
-function createPayjpCharge(int $amount, string $cardToken, array $appConfig): array
+function createPayjpCharge(int $amount, string $cardToken, array $payjpConfig): array
 {
 	if (!function_exists('curl_init')) {
 		throw new RuntimeException('サーバーのcURL設定が不足しているため決済を実行できません。');
@@ -101,7 +103,7 @@ function createPayjpCharge(int $amount, string $cardToken, array $appConfig): ar
 		CURLOPT_POST => true,
 		CURLOPT_POSTFIELDS => $postFields,
 		CURLOPT_RETURNTRANSFER => true,
-		CURLOPT_USERPWD => getPayjpSecretKey($appConfig) . ':',
+		CURLOPT_USERPWD => getPayjpSecretKey($payjpConfig) . ':',
 		CURLOPT_HTTPHEADER => [
 			'Accept: application/json',
 		],
@@ -193,7 +195,7 @@ SQL
 		$orderTaxAmount = (int)floor($orderSubtotal * 0.10);
 		$orderTotalAmount = $orderSubtotal + $orderShippingFee + $orderTaxAmount;
 
-		$chargeResponse = createPayjpCharge($orderTotalAmount, $cardToken, $appConfig);
+		$chargeResponse = createPayjpCharge($orderTotalAmount, $cardToken, $payjpConfig);
 		$chargedTransactionId = isset($chargeResponse['id']) ? (string)$chargeResponse['id'] : '';
 		$paidStatus = !empty($chargeResponse['paid']);
 		if (!$paidStatus || $chargedTransactionId === '') {
