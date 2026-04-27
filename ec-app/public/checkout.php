@@ -1,7 +1,8 @@
 <?php
 $pageTitle = '購入手続き';
 $activePage = 'checkout';
-session_start();
+require_once __DIR__ . '/../app/Auth/session.php';
+app_session_start();
 require_once __DIR__ . '/../config/database.php';
 
 $errorMessage = '';
