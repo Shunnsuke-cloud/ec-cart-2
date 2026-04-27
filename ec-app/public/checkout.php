@@ -49,16 +49,90 @@ SQL
 	return (int)$pdo->lastInsertId();
 }
 
+/**
+ * 環境変数からPAY.JP秘密鍵を取得します。
+ */
+function getPayjpSecretKey(): string
+{
+	$secretKey = getenv('PAYJP_SECRET_KEY');
+	if ($secretKey === false || trim($secretKey) === '') {
+		throw new RuntimeException('PAY.JP秘密鍵が未設定です。環境変数 PAYJP_SECRET_KEY を設定してください。');
+	}
+
+	return trim($secretKey);
+}
+
+/**
+ * PAY.JPでカード決済を実行し、APIレスポンス配列を返します。
+ */
+function createPayjpCharge(int $amount, string $cardToken): array
+{
+	if (!function_exists('curl_init')) {
+		throw new RuntimeException('サーバーのcURL設定が不足しているため決済を実行できません。');
+	}
+
+	if ($amount <= 0) {
+		throw new RuntimeException('決済金額が不正です。');
+	}
+
+	$ch = curl_init('https://api.pay.jp/v1/charges');
+	if ($ch === false) {
+		throw new RuntimeException('決済通信の初期化に失敗しました。');
+	}
+
+	$postFields = http_build_query([
+		'amount' => $amount,
+		'card' => $cardToken,
+		'currency' => 'jpy',
+		'capture' => 'true',
+	]);
+
+	curl_setopt_array($ch, [
+		CURLOPT_POST => true,
+		CURLOPT_POSTFIELDS => $postFields,
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_USERPWD => getPayjpSecretKey() . ':',
+		CURLOPT_HTTPHEADER => [
+			'Accept: application/json',
+		],
+		CURLOPT_TIMEOUT => 30,
+	]);
+
+	$responseBody = curl_exec($ch);
+	if ($responseBody === false) {
+		$curlError = curl_error($ch);
+		curl_close($ch);
+		throw new RuntimeException('決済通信に失敗しました: ' . $curlError);
+	}
+
+	$statusCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	curl_close($ch);
+
+	$responseData = json_decode($responseBody, true);
+	if (!is_array($responseData)) {
+		throw new RuntimeException('決済APIの応答解析に失敗しました。');
+	}
+
+	if ($statusCode >= 400 || isset($responseData['error'])) {
+		$errorMessage = '決済に失敗しました。入力内容をご確認ください。';
+		if (isset($responseData['error']['message']) && is_string($responseData['error']['message'])) {
+			$errorMessage = $responseData['error']['message'];
+		}
+		throw new RuntimeException($errorMessage);
+	}
+
+	return $responseData;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'place_order') {
 	$sessionId = session_id();
 	$cardToken = trim((string)($_POST['card_token'] ?? ''));
+	$chargedTransactionId = '';
 
 	try {
 		if ($cardToken === '') {
 			throw new RuntimeException('カード情報のトークン化に失敗しました。入力内容を確認してください。');
 		}
-
-		$pdo->beginTransaction();
 
 		$stmtCart = $pdo->prepare(
 			'SELECT id FROM carts WHERE session_id = :session_id AND user_id IS NULL ORDER BY id DESC LIMIT 1'
@@ -109,6 +183,15 @@ SQL
 		$orderTaxAmount = (int)floor($orderSubtotal * 0.10);
 		$orderTotalAmount = $orderSubtotal + $orderShippingFee + $orderTaxAmount;
 
+		$chargeResponse = createPayjpCharge($orderTotalAmount, $cardToken);
+		$chargedTransactionId = isset($chargeResponse['id']) ? (string)$chargeResponse['id'] : '';
+		$paidStatus = !empty($chargeResponse['paid']);
+		if (!$paidStatus || $chargedTransactionId === '') {
+			throw new RuntimeException('決済が完了しませんでした。時間をおいて再度お試しください。');
+		}
+
+		$pdo->beginTransaction();
+
 		$userId = resolveOrderUserId($pdo);
 		$orderNumber = 'ORD' . date('YmdHis') . sprintf('%04d', random_int(0, 9999));
 
@@ -148,7 +231,7 @@ SQL
 			'discount_amount' => 0,
 			'tax_amount' => $orderTaxAmount,
 			'total_amount' => $orderTotalAmount,
-			'payment_status' => 'pending',
+			'payment_status' => 'paid',
 			'shipping_status' => 'preparing',
 		]);
 		$orderId = (int)$pdo->lastInsertId();
@@ -225,7 +308,7 @@ INSERT INTO payments (
 SQL
 		);
 		$rawPaymentResponse = json_encode([
-			'card_token' => $cardToken,
+			'payjp_charge' => $chargeResponse,
 		], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 		if ($rawPaymentResponse === false) {
 			$rawPaymentResponse = '{}';
@@ -233,9 +316,9 @@ SQL
 		$stmtPayment->execute([
 			'order_id' => $orderId,
 			'payment_method' => 'credit_card',
-			'transaction_id' => $cardToken,
+			'transaction_id' => $chargedTransactionId,
 			'amount' => $orderTotalAmount,
-			'status' => 'pending',
+			'status' => 'paid',
 			'provider' => 'PAY.JP',
 			'raw_response' => $rawPaymentResponse,
 		]);
@@ -250,9 +333,15 @@ SQL
 		if ($pdo->inTransaction()) {
 			$pdo->rollBack();
 		}
-		$errorMessage = $e instanceof RuntimeException
-			? $e->getMessage()
-			: '注文確定に失敗しました。時間をおいて再度お試しください。';
+		if ($e instanceof RuntimeException) {
+			$errorMessage = $e->getMessage();
+		} else {
+			$errorMessage = '注文確定に失敗しました。時間をおいて再度お試しください。';
+		}
+
+		if ($chargedTransactionId !== '') {
+			$errorMessage .= '（決済ID: ' . $chargedTransactionId . '）';
+		}
 	}
 }
 
