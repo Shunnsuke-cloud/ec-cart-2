@@ -27,6 +27,7 @@ $loginUserName = isset($_SESSION['user_name']) ? (string)$_SESSION['user_name'] 
 					<li><a class="<?php echo $activePage === 'cart' ? 'is-active' : ''; ?>" href="cart.php">カート</a></li>
 					<li><a class="<?php echo $activePage === 'checkout' ? 'is-active' : ''; ?>" href="checkout.php">購入手続き</a></li>
 					<?php if ($isLoggedIn): ?>
+						<li><a class="<?php echo $activePage === 'address' ? 'is-active' : ''; ?>" href="address.php">住所登録</a></li>
 						<li><span class="nav-user"><?php echo htmlspecialchars($loginUserName, ENT_QUOTES, 'UTF-8'); ?>さん</span></li>
 						<li><a href="logout.php">ログアウト</a></li>
 					<?php else: ?>
