@@ -5,6 +5,9 @@ require_once __DIR__ . '/../app/Auth/session.php';
 app_session_start();
 require_once __DIR__ . '/../config/database.php';
 
+$appConfig = require __DIR__ . '/../config/app.php';
+$payjpPublicKey = isset($appConfig['payjp']['public_key']) ? trim((string)$appConfig['payjp']['public_key']) : '';
+
 $errorMessage = '';
 $noticeMessage = '';
 $cartItems = [];
@@ -52,20 +55,27 @@ SQL
 /**
  * 環境変数からPAY.JP秘密鍵を取得します。
  */
-function getPayjpSecretKey(): string
+function getPayjpSecretKey(array $appConfig): string
 {
-	$secretKey = getenv('PAYJP_SECRET_KEY');
-	if ($secretKey === false || trim($secretKey) === '') {
-		throw new RuntimeException('PAY.JP秘密鍵が未設定です。環境変数 PAYJP_SECRET_KEY を設定してください。');
+	$secretKey = isset($appConfig['payjp']['secret_key']) ? trim((string)$appConfig['payjp']['secret_key']) : '';
+	if ($secretKey === '') {
+		$envSecret = getenv('PAYJP_SECRET_KEY');
+		if ($envSecret !== false) {
+			$secretKey = trim((string)$envSecret);
+		}
 	}
 
-	return trim($secretKey);
+	if ($secretKey === '') {
+		throw new RuntimeException('PAY.JP秘密鍵が未設定です。config/app.local.php または環境変数 PAYJP_SECRET_KEY を設定してください。');
+	}
+
+	return $secretKey;
 }
 
 /**
  * PAY.JPでカード決済を実行し、APIレスポンス配列を返します。
  */
-function createPayjpCharge(int $amount, string $cardToken): array
+function createPayjpCharge(int $amount, string $cardToken, array $appConfig): array
 {
 	if (!function_exists('curl_init')) {
 		throw new RuntimeException('サーバーのcURL設定が不足しているため決済を実行できません。');
@@ -91,7 +101,7 @@ function createPayjpCharge(int $amount, string $cardToken): array
 		CURLOPT_POST => true,
 		CURLOPT_POSTFIELDS => $postFields,
 		CURLOPT_RETURNTRANSFER => true,
-		CURLOPT_USERPWD => getPayjpSecretKey() . ':',
+		CURLOPT_USERPWD => getPayjpSecretKey($appConfig) . ':',
 		CURLOPT_HTTPHEADER => [
 			'Accept: application/json',
 		],
@@ -183,7 +193,7 @@ SQL
 		$orderTaxAmount = (int)floor($orderSubtotal * 0.10);
 		$orderTotalAmount = $orderSubtotal + $orderShippingFee + $orderTaxAmount;
 
-		$chargeResponse = createPayjpCharge($orderTotalAmount, $cardToken);
+		$chargeResponse = createPayjpCharge($orderTotalAmount, $cardToken, $appConfig);
 		$chargedTransactionId = isset($chargeResponse['id']) ? (string)$chargeResponse['id'] : '';
 		$paidStatus = !empty($chargeResponse['paid']);
 		if (!$paidStatus || $chargedTransactionId === '') {
@@ -494,6 +504,10 @@ require_once __DIR__ . '/../views/layout/header.php';
 </section>
 
 <script src="https://js.pay.jp/v2/pay.js"></script>
+<script>
+window.APP_CONFIG = window.APP_CONFIG || {};
+window.APP_CONFIG.payjpPublicKey = <?php echo json_encode($payjpPublicKey, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+</script>
 <script src="js/checkout.js"></script>
 
 <?php require_once __DIR__ . '/../views/layout/footer.php'; ?>

@@ -7,6 +7,8 @@
     const tokenInput = document.getElementById('card-token');
     const errorBox = document.getElementById('token-error');
     const submitButton = form.querySelector('button[type="submit"]');
+    const appConfig = window.APP_CONFIG || {};
+    const payjpPublicKey = (appConfig.payjpPublicKey || '').trim();
 
     if (typeof window.Payjp === 'undefined') {
         showError('決済ライブラリの読み込みに失敗しました。ページを再読み込みしてください。');
@@ -16,7 +18,15 @@
         return;
     }
 
-    Payjp.setPublicKey('pk_test_3e05cd08a108cb220bdb2ed0');
+    if (!payjpPublicKey) {
+        showError('決済設定が未設定です。管理者にお問い合わせください。');
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+        return;
+    }
+
+    Payjp.setPublicKey(payjpPublicKey);
 
     form.addEventListener('submit', function (event) {
         event.preventDefault();
