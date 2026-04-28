@@ -72,3 +72,12 @@ VALUES ('管理者', 'admin@example.com', 'password_hashで保存した文字列
 - 削除: [ec-app/public/admin/products/delete.php](ec-app/public/admin/products/delete.php)
 
 この商品CRUDは `products` テーブルの基本情報（商品名、slug、ブランド、説明、カテゴリID、状態）を管理します。商品画像やSKUは既存のまま別管理です。
+
+## 注文一覧 / ステータス変更（管理者）
+
+管理者ログイン後に注文一覧を確認し、注文状態・支払状態・配送状態を変更できます。
+
+- 一覧: [ec-app/public/admin/orders/index.php](ec-app/public/admin/orders/index.php)
+- 変更: [ec-app/public/admin/orders/edit.php](ec-app/public/admin/orders/edit.php)
+
+表示している主な項目は注文番号、購入者、商品点数、合計金額、支払状態、配送状態、注文状態です。
