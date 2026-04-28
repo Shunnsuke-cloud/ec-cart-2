@@ -61,3 +61,14 @@ VALUES ('管理者', 'admin@example.com', 'password_hashで保存した文字列
 ```
 
 パスワードは必ず `password_hash()` で作った値を保存してください。
+
+## 商品CRUD（管理者）
+
+管理者ログイン後に [ec-app/public/admin/index.php](ec-app/public/admin/index.php) から [ec-app/public/admin/products/index.php](ec-app/public/admin/products/index.php) へ進めます。
+
+- 一覧: [ec-app/public/admin/products/index.php](ec-app/public/admin/products/index.php)
+- 新規作成: [ec-app/public/admin/products/new.php](ec-app/public/admin/products/new.php)
+- 編集: [ec-app/public/admin/products/edit.php](ec-app/public/admin/products/edit.php)
+- 削除: [ec-app/public/admin/products/delete.php](ec-app/public/admin/products/delete.php)
+
+この商品CRUDは `products` テーブルの基本情報（商品名、slug、ブランド、説明、カテゴリID、状態）を管理します。商品画像やSKUは既存のまま別管理です。
