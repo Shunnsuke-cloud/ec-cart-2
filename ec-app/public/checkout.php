@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config/database.php';
 $payjpConfigPath = __DIR__ . '/../config/payjp.php';
 
 if (!is_file($payjpConfigPath)) {
-	throw new RuntimeException('PAY.JP設定ファイルが見つかりません。config/payjp.php をサーバーに配置してください。');
+	throw new RuntimeException('PAY.JP設定ファイルが見つかりません。config/payjp.example.php をコピーして config/payjp.php をサーバーに配置してください。');
 }
 
 $payjpConfig = require $payjpConfigPath;
