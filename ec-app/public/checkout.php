@@ -197,6 +197,7 @@ SQL
 		$orderTaxAmount = (int)floor($orderSubtotal * 0.10);
 		$orderTotalAmount = $orderSubtotal + $orderShippingFee + $orderTaxAmount;
 
+		// 決済が成功した場合のみ、この先で注文を確定します。
 		$chargeResponse = createPayjpCharge($orderTotalAmount, $cardToken, $payjpConfig);
 		$chargedTransactionId = isset($chargeResponse['id']) ? (string)$chargeResponse['id'] : '';
 		$paidStatus = !empty($chargeResponse['paid']);
@@ -239,7 +240,7 @@ SQL
 		$stmtOrder->execute([
 			'user_id' => $userId,
 			'order_number' => $orderNumber,
-			'status' => 'pending',
+			'status' => 'confirmed',
 			'subtotal' => $orderSubtotal,
 			'shipping_fee' => $orderShippingFee,
 			'discount_amount' => 0,
