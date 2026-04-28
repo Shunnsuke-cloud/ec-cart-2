@@ -5,13 +5,15 @@ require_once __DIR__ . '/../app/Auth/session.php';
 app_session_start();
 require_once __DIR__ . '/../config/database.php';
 
-$payjpConfig = [];
 $payjpConfigPath = __DIR__ . '/../config/payjp.php';
-if (is_file($payjpConfigPath)) {
-	$loadedPayjpConfig = require $payjpConfigPath;
-	if (is_array($loadedPayjpConfig)) {
-		$payjpConfig = $loadedPayjpConfig;
-	}
+
+if (!is_file($payjpConfigPath)) {
+	throw new RuntimeException('PAY.JP設定ファイルが見つかりません。config/payjp.php をサーバーに配置してください。');
+}
+
+$payjpConfig = require $payjpConfigPath;
+if (!is_array($payjpConfig)) {
+	throw new RuntimeException('PAY.JP設定ファイルの形式が不正です。config/payjp.php を確認してください。');
 }
 
 $payjpPublicKey = isset($payjpConfig['public_key']) ? trim((string)$payjpConfig['public_key']) : '';
