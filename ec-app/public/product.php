@@ -17,10 +17,13 @@ SELECT
     COALESCE(MIN(pv.price), 0) AS min_price,
     COALESCE(MAX(pv.price), 0) AS max_price,
     COALESCE(SUM(pv.stock), 0) AS total_stock,
-    MAX(CASE WHEN pi.is_main = 1 THEN pi.image_path END) AS main_image
+    MAX(CASE WHEN pi.is_main = 1 THEN pi.image_path END) AS main_image,
+    COALESCE(ROUND(AVG(r.rating), 1), 0) AS average_rating,
+    COUNT(DISTINCT r.id) AS review_count
 FROM products p
 LEFT JOIN product_variants pv ON pv.product_id = p.id
 LEFT JOIN product_images pi ON pi.product_id = p.id
+LEFT JOIN reviews r ON r.product_id = p.id AND r.status = 'approved'
 WHERE p.status = 'active'
   AND p.deleted_at IS NULL
 GROUP BY p.id, p.name, p.slug, p.description, p.brand
@@ -72,6 +75,17 @@ require_once __DIR__ . '/../views/layout/header.php';
 						<p class="product-brand"><?php echo htmlspecialchars((string)($product['brand'] ?? 'BRAND'), ENT_QUOTES, 'UTF-8'); ?></p>
 						<h3><?php echo htmlspecialchars((string)$product['name'], ENT_QUOTES, 'UTF-8'); ?></h3>
 						<p class="product-description"><?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?></p>
+
+						<?php if ((int)$product['review_count'] > 0): ?>
+							<p class="product-rating">
+								<?php 
+								$rating = (int)(float)$product['average_rating'];
+								echo str_repeat('★', $rating) . str_repeat('☆', 5 - $rating);
+								?>
+								<?php echo number_format((float)$product['average_rating'], 1); ?> (<?php echo (int)$product['review_count']; ?>件)
+							</p>
+						<?php endif; ?>
+
 						<p class="product-price"><?php echo htmlspecialchars($priceText, ENT_QUOTES, 'UTF-8'); ?></p>
 						<p class="stock-status <?php echo $isInStock ? 'in-stock' : 'out-of-stock'; ?>">
 							<?php echo $isInStock ? '在庫あり' : '在庫なし'; ?>
