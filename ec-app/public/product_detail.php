@@ -289,46 +289,24 @@ require_once __DIR__ . '/../views/layout/header.php';
         <p class="notice success"><?php echo htmlspecialchars($reviewMessage, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <?php if ($product && $totalReviews > 0): ?>
-        <div class="review-stats">
-            <p class="average-rating">
-                平均評価: 
-                <strong><?php echo number_format($averageRating, 1); ?></strong> / 5.0
-                (<?php echo $totalReviews; ?>件)
-            </p>
-        </div>
-
-        <div class="reviews-list">
-            <?php foreach ($reviews as $review): ?>
-                <div class="review-item">
-                    <div class="review-header">
-                        <span class="review-rating">
-                            <?php 
-                            $rating = (int)$review['rating'];
-                            echo str_repeat('★', $rating) . str_repeat('☆', 5 - $rating);
-                            ?>
-                        </span>
-                        <span class="review-title">
-                            <?php echo htmlspecialchars((string)($review['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                        </span>
-                    </div>
-                    <p class="review-user">
-                        <?php echo htmlspecialchars((string)($review['user_name'] ?? 'ゲスト'), ENT_QUOTES, 'UTF-8'); ?>
-                    </p>
-                    <p class="review-comment">
-                        <?php echo htmlspecialchars((string)($review['comment'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                    </p>
-                    <p class="review-date">
-                        <?php echo date('Y年m月d日', strtotime((string)$review['created_at'])); ?>
-                    </p>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php elseif ($product): ?>
-        <p class="notice">まだレビューはありません。最初のレビュアーになってください。</p>
-    <?php endif; ?>
-
     <?php if ($product): ?>
+        <div class="review-preview">
+            <?php if ($totalReviews > 0): ?>
+                <p class="average-rating">
+                    平均評価: 
+                    <strong><?php echo number_format($averageRating, 1); ?></strong> / 5.0
+                    (<?php echo $totalReviews; ?>件)
+                </p>
+                <p class="product-actions">
+                    <a class="button" href="reviews.php?product=<?php echo urlencode((string)$product['slug']); ?>">
+                        すべてのレビューを見る
+                    </a>
+                </p>
+            <?php else: ?>
+                <p class="notice">まだレビューはありません。最初のレビュアーになってください。</p>
+            <?php endif; ?>
+        </div>
+
         <div class="review-form-section">
             <h4>レビューを投稿する</h4>
             <form method="post" class="review-form">
