@@ -21,6 +21,7 @@ $adminName = isset($_SESSION['admin_name']) ? (string)$_SESSION['admin_name'] : 
                 <p>ようこそ、<?php echo htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8'); ?>さん。</p>
                 <p class="product-actions"><a class="button" href="products/index.php">商品管理へ</a></p>
                 <p class="product-actions"><a class="button" href="orders/index.php">注文管理へ</a></p>
+                <p class="product-actions"><a class="button" href="reviews/index.php">レビュー管理へ</a></p>
                 <p class="product-actions"><a class="button" href="logout.php">ログアウト</a></p>
             </section>
         </div>
