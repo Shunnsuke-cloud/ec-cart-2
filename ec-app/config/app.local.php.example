@@ -1,0 +1,11 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'payjp' => [
+        // Replace with your own keys on the server.
+        'public_key' => 'your-payjp-public-key',
+        'secret_key' => 'your-payjp-secret-key',
+    ],
+];
