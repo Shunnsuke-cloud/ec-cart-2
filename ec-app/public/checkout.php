@@ -22,6 +22,9 @@ $errorMessage = '';
 $noticeMessage = '';
 $cartItems = [];
 
+$orderDiscountAmount = 0;
+$appliedCoupon = null;
+
 $subtotal = 0;
 $shippingFee = 0;
 $taxAmount = 0;
@@ -194,8 +197,54 @@ SQL
 		}
 
 		$orderShippingFee = $orderSubtotal >= 5000 ? 0 : 700;
-		$orderTaxAmount = (int)floor($orderSubtotal * 0.10);
-		$orderTotalAmount = $orderSubtotal + $orderShippingFee + $orderTaxAmount;
+
+		// クーポン適用処理
+		$couponCode = trim((string)($_POST['coupon_code'] ?? ''));
+		$orderDiscountAmount = 0;
+		$appliedCoupon = null;
+		if ($couponCode !== '') {
+			$stmtCoupon = $pdo->prepare('SELECT * FROM coupons WHERE code = :code LIMIT 1');
+			$stmtCoupon->execute(['code' => $couponCode]);
+			$coupon = $stmtCoupon->fetch();
+			if ($coupon) {
+				$now = (new DateTimeImmutable('now', new DateTimeZone(date_default_timezone_get())))->format('Y-m-d H:i:s');
+				$statusOk = isset($coupon['status']) && $coupon['status'] === 'active';
+				$startsOk = empty($coupon['starts_at']) || $coupon['starts_at'] <= $now;
+				$endsOk = empty($coupon['ends_at']) || $coupon['ends_at'] >= $now;
+				$usageLimitOk = true;
+				if ($coupon['usage_limit'] !== null && $coupon['usage_limit'] !== '') {
+					$usageLimitOk = ((int)$coupon['used_count'] < (int)$coupon['usage_limit']);
+				}
+				$minAmountOk = true;
+				if ($coupon['min_order_amount'] !== null && $coupon['min_order_amount'] !== '') {
+					$minAmountOk = $orderSubtotal >= (int)$coupon['min_order_amount'];
+				}
+
+				if ($statusOk && $startsOk && $endsOk && $usageLimitOk && $minAmountOk) {
+					// 割引は小計に対して適用
+					if ((string)$coupon['type'] === 'fixed') {
+						$orderDiscountAmount = (int)floor((float)$coupon['value']);
+					} else {
+						// percent
+						$percent = (float)$coupon['value'];
+						$orderDiscountAmount = (int)floor($orderSubtotal * ($percent / 100.0));
+					}
+					if ($orderDiscountAmount < 0) {
+						$orderDiscountAmount = 0;
+					}
+					$appliedCoupon = $coupon;
+				} else {
+					throw new RuntimeException('クーポンが利用できません。コード・有効期限・使用回数・適用条件を確認してください。');
+				}
+			} else {
+				throw new RuntimeException('クーポンコードが見つかりません。');
+			}
+		}
+
+		// 割引適用後の金額を再計算（税は割引後の小計に対して計算）
+		$orderSubtotalAfterDiscount = max(0, $orderSubtotal - $orderDiscountAmount);
+		$orderTaxAmount = (int)floor($orderSubtotalAfterDiscount * 0.10);
+		$orderTotalAmount = $orderSubtotalAfterDiscount + $orderShippingFee + $orderTaxAmount;
 
 		// 決済が成功した場合のみ、この先で注文を確定します。
 		$chargeResponse = createPayjpCharge($orderTotalAmount, $cardToken, $payjpConfig);
@@ -243,7 +292,7 @@ SQL
 			'status' => 'confirmed',
 			'subtotal' => $orderSubtotal,
 			'shipping_fee' => $orderShippingFee,
-			'discount_amount' => 0,
+			'discount_amount' => $orderDiscountAmount,
 			'tax_amount' => $orderTaxAmount,
 			'total_amount' => $orderTotalAmount,
 			'payment_status' => 'paid',
@@ -340,6 +389,14 @@ SQL
 
 		$stmtClearCart = $pdo->prepare('DELETE FROM cart_items WHERE cart_id = :cart_id');
 		$stmtClearCart->execute(['cart_id' => $cartId]);
+
+		if ($appliedCoupon !== null) {
+			$stmtUpdateCoupon = $pdo->prepare('UPDATE coupons SET used_count = used_count + 1 WHERE id = :id AND (usage_limit IS NULL OR used_count < usage_limit)');
+			$stmtUpdateCoupon->execute(['id' => (int)$appliedCoupon['id']]);
+			if ($stmtUpdateCoupon->rowCount() < 1) {
+				throw new RuntimeException('クーポンの使用更新に失敗しました。');
+			}
+		}
 
 		$pdo->commit();
 		header('Location: checkout.php?ordered=1&order_no=' . urlencode($orderNumber));
@@ -482,6 +539,11 @@ require_once __DIR__ . '/../views/layout/header.php';
 				<form method="post" class="order-submit-form" id="order-submit-form">
 					<input type="hidden" name="action" value="place_order">
 					<input type="hidden" name="card_token" id="card-token" value="">
+
+					<div class="coupon-field">
+						<label for="coupon-code">クーポンコード（任意）</label>
+						<input id="coupon-code" name="coupon_code" type="text" placeholder="クーポンコードを入力">
+					</div>
 
 					<div class="payment-card-fields">
 						<label for="card-number">カード番号</label>
