@@ -41,3 +41,23 @@ return [
 - 利用方法: 決済ページ（`/ec-app/public/checkout.php`）にクーポンコード入力欄があります。コードを入力して注文確定すると、サーバー側で検証され、割引が適用されます。
 
 注意: 投稿されたクーポンはサーバー側で検証・カウントされ、注文確定時に `used_count` がインクリメントされます。
+
+## 管理者ログイン
+
+管理者ログインは会員ログインと分けてあります。
+
+- ログイン画面: [ec-app/public/admin/login.php](ec-app/public/admin/login.php)
+- ログイン後の画面: [ec-app/public/admin/index.php](ec-app/public/admin/index.php)
+- ログアウト: [ec-app/public/admin/logout.php](ec-app/public/admin/logout.php)
+- 管理者用テーブル: [ec-app/database/005_create_admin_users.sql](ec-app/database/005_create_admin_users.sql)
+
+サーバーで [ec-app/database/005_create_admin_users.sql](ec-app/database/005_create_admin_users.sql) を実行して `admin_users` テーブルを作成し、最初の管理者アカウントを登録してください。
+
+管理者アカウント例:
+
+```sql
+INSERT INTO admin_users (name, email, password, status)
+VALUES ('管理者', 'admin@example.com', 'password_hashで保存した文字列', 'active');
+```
+
+パスワードは必ず `password_hash()` で作った値を保存してください。
