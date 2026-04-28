@@ -1,14 +1,14 @@
 -- Create reviews table
-CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTO_INCREMENT,
-    product_id INTEGER NOT NULL,
-    user_id INTEGER,
-    rating INTEGER NOT NULL COMMENT '1-5 stars',
+DROP TABLE IF EXISTS reviews;
+
+CREATE TABLE reviews (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT NOT NULL,
+    user_id INT,
+    rating TINYINT NOT NULL COMMENT '1-5 stars',
     title VARCHAR(255),
     comment TEXT,
-    is_verified_purchase TINYINT(1) DEFAULT 0,
-    helpful_count INTEGER DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'pending' COMMENT 'pending, approved, rejected',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT 'pending, approved, rejected',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id),
