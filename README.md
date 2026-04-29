@@ -81,3 +81,47 @@ VALUES ('管理者', 'admin@example.com', 'password_hashで保存した文字列
 - 変更: [ec-app/public/admin/orders/edit.php](ec-app/public/admin/orders/edit.php)
 
 表示している主な項目は注文番号、購入者、商品点数、合計金額、支払状態、配送状態、注文状態です。
+
+## ロール（役割）システム
+
+このブランチではロール管理テーブルを追加しました。
+
+- マイグレーション: [ec-app/database/006_create_roles.sql](ec-app/database/006_create_roles.sql) を実行して `roles` テーブルを作成してください（mysqladmin や phpMyAdmin を使用）。
+
+### rolesテーブルの作成手順
+
+**mysqladmin でのコピペ実行:**
+
+```bash
+mysql -u root -p your_database_name
+```
+
+ログイン後、以下をコピペして実行:
+
+```sql
+CREATE TABLE IF NOT EXISTS roles (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO roles (name, description) VALUES
+    ('admin', '管理者（全操作可能）'),
+    ('manager', '運用担当（注文・レビュー管理など）'),
+    ('user', '一般ユーザー（購入・レビュー投稿）');
+```
+
+### ロールの説明
+
+| ロール | 説明 |
+|--------|------|
+| `admin` | 管理者（全操作可能） |
+| `manager` | 運用担当（注文・レビュー管理など） |
+| `user` | 一般ユーザー（購入・レビュー投稿） |
+
+### 初期データ
+
+テーブル作成時に上記の3つのロール（admin, manager, user）が自動的に挿入されます。
