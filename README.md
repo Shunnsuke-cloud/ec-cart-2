@@ -1,209 +1,182 @@
-# ec-cart-2
-ECかーと PHP。ロリポップサーバーで PAY.JP を使う構成です。
+# ECカート
 
-## PAY.JP のAPIキーの書き場所
+中小規模のEC運用を想定した、PHP + MySQL ベースの受注管理システムです。商品管理、カート、注文、決済、レビュー、クーポン、管理者向け権限制御までをまとめて扱えます。
 
-APIキーは Git 管理外の [ec-app/config/payjp.php](ec-app/config/payjp.php) に書きます。
+---
 
-手順は次のとおりです。
+## 概要
 
-1. [ec-app/config/payjp.example.php](ec-app/config/payjp.example.php) をコピーして [ec-app/config/payjp.php](ec-app/config/payjp.php) を作成する
-2. [ec-app/config/payjp.php](ec-app/config/payjp.php) に本番用またはテスト用のキーを記入する
-3. `public_key` はフロント側のカードトークン生成に使う
-4. `secret_key` は [ec-app/public/checkout.php](ec-app/public/checkout.php) の決済処理で使う
-5. `webhook_token` を使う場合は、同じファイルに書く
+このアプリは、ECサイト運営で発生する「商品登録が分散している」「注文状況の把握が難しい」「レビュー対応に手間がかかる」といった課題を解決するために開発しました。
 
-例:
+商品販売から受注処理、レビュー管理、管理者の権限制御までを一元化し、少人数でも運用しやすい形を目指しています。
 
-```php
-return [
-	'public_key' => 'pk_test_xxxxxxxxx',
-	'secret_key' => 'sk_test_xxxxxxxxx',
-	'webhook_token' => 'whsec_xxxxxxxxx',
-];
+---
+
+## 背景
+
+従来の課題:
+- 商品や在庫の更新が手作業で煩雑
+- 注文や決済の状態確認に時間がかかる
+- 不適切なレビュー対応や権限管理が難しい
+
+このアプリで解決できること:
+- 管理画面からの商品・注文・レビューの一元管理
+- クーポンや決済を含めた購入導線の整理
+- ロールベースのアクセス制御による安全な運用
+
+---
+
+## 主な機能
+
+- ユーザー登録・ログイン
+- 商品一覧表示、商品詳細表示
+- カート追加・数量変更・削除
+- 注文確定、PAY.JP によるクレジットカード決済
+- クーポン割引の適用
+- レビュー投稿、レビュー一覧表示
+- 管理者ログイン
+- 商品管理
+- 注文管理
+- レビュー管理（承認・却下・削除）
+- ロール管理とアクセス制御
+
+---
+
+## 使用技術
+
+### フロントエンド
+- HTML
+- CSS
+- JavaScript
+
+### バックエンド
+- PHP
+
+### データベース
+- MySQL
+
+### 外部サービス
+- PAY.JP
+
+### 開発・運用
+- Git
+- phpMyAdmin / mysqladmin
+
+---
+
+## システム構成
+
+```text
+[ブラウザ]
+  ↓
+[public/ 配下の PHP 画面]
+  ↓
+[app/ 配下の認証・業務ロジック]
+  ↓
+[config/database.php]
+  ↓
+[MySQL]
+
+決済処理は checkout.php から PAY.JP API を呼び出し、注文情報を DB に保存します。
+管理者機能は admin セッションで保護し、ロールに応じてアクセス制御します。
 ```
 
-`config/payjp.php` は Git に含めません。サーバーへ配置するときにだけ作成してください。
+---
 
-## クーポン（割引）の使い方
+## ER図
 
-このブランチではクーポンによる割引が注文時に適用できます。
+（ER図を画像で掲載予定）
 
-- マイグレーション: [ec-app/database/004_create_coupons.sql](ec-app/database/004_create_coupons.sql) を実行して `coupons` テーブルを作成してください（mysqladmin や phpMyAdmin を使用）。
-- クーポンの主なカラム:
-	- `code`: クーポンコード（一意）
-	- `type`: `fixed`（固定額）または `percent`（割合）
-	- `value`: 金額または割合（percent の場合は 10 で 10%）
-	- `usage_limit` / `used_count`: 使用回数管理
-	- `min_order_amount`: 適用最小注文額（円）
-	- `starts_at` / `ends_at`: 有効期間
+主なテーブル:
+- `users`
+- `products`
+- `product_variants`
+- `carts`
+- `cart_items`
+- `orders`
+- `order_items`
+- `payments`
+- `reviews`
+- `coupons`
+- `admin_users`
+- `roles`
+- `user_roles`
 
-- 利用方法: 決済ページ（`/ec-app/public/checkout.php`）にクーポンコード入力欄があります。コードを入力して注文確定すると、サーバー側で検証され、割引が適用されます。
+---
 
-注意: 投稿されたクーポンはサーバー側で検証・カウントされ、注文確定時に `used_count` がインクリメントされます。
+## 画面イメージ
 
-## 管理者ログイン
+| 画面 | 説明 |
+|------|------|
+| トップページ | 商品一覧を表示し、購入導線へ進める画面 |
+| 商品詳細ページ | 商品情報、SKU、レビューを表示 |
+| カートページ | カート内容の確認と数量変更 |
+| 購入手続き画面 | 配送・決済情報を入力して注文確定 |
+| 管理画面 | 商品・注文・レビュー・権限の管理 |
 
-管理者ログインは会員ログインと分けてあります。
+---
 
-- ログイン画面: [ec-app/public/admin/login.php](ec-app/public/admin/login.php)
-- ログイン後の画面: [ec-app/public/admin/index.php](ec-app/public/admin/index.php)
-- ログアウト: [ec-app/public/admin/logout.php](ec-app/public/admin/logout.php)
-- 管理者用テーブル: [ec-app/database/005_create_admin_users.sql](ec-app/database/005_create_admin_users.sql)
+## 工夫した点
 
-サーバーで [ec-app/database/005_create_admin_users.sql](ec-app/database/005_create_admin_users.sql) を実行して `admin_users` テーブルを作成し、最初の管理者アカウントを登録してください。
+- 画面ごとの責務を分け、`app/` に処理を集約したこと
+- 管理者機能をセッション分離し、一般ユーザーと権限を分けたこと
+- レビューや注文など、状態を持つデータを DB で明確に管理したこと
+- クーポン、決済、在庫更新を注文確定処理にまとめて整合性を保ったこと
 
-管理者アカウント例:
+---
 
-```sql
-INSERT INTO admin_users (name, email, password, status)
-VALUES ('管理者', 'admin@example.com', 'password_hashで保存した文字列', 'active');
-```
+## 苦労した点
 
-パスワードは必ず `password_hash()` で作った値を保存してください。
+- PAY.JP のトークン決済とサーバー側処理のつなぎ込み
+- 注文確定時の在庫更新と決済失敗時の整合性確保
+- レビュー削除や不適切レビュー対応の管理画面設計
+- ロールベースのアクセス制御を既存構成に自然に組み込むこと
 
-## 商品CRUD（管理者）
+---
 
-管理者ログイン後に [ec-app/public/admin/index.php](ec-app/public/admin/index.php) から [ec-app/public/admin/products/index.php](ec-app/public/admin/products/index.php) へ進めます。
+## 今後の改善
 
-- 一覧: [ec-app/public/admin/products/index.php](ec-app/public/admin/products/index.php)
-- 新規作成: [ec-app/public/admin/products/new.php](ec-app/public/admin/products/new.php)
-- 編集: [ec-app/public/admin/products/edit.php](ec-app/public/admin/products/edit.php)
-- 削除: [ec-app/public/admin/products/delete.php](ec-app/public/admin/products/delete.php)
+- 配送管理機能の拡張
+- 売上分析画面の追加
+- CSV出力機能の拡充
+- テストコードの整備
+- 監査ログの追加
 
-この商品CRUDは `products` テーブルの基本情報（商品名、slug、ブランド、説明、カテゴリID、状態）を管理します。商品画像やSKUは既存のまま別管理です。
+---
 
-## 注文一覧 / ステータス変更（管理者）
+## セットアップ
 
-管理者ログイン後に注文一覧を確認し、注文状態・支払状態・配送状態を変更できます。
-
-- 一覧: [ec-app/public/admin/orders/index.php](ec-app/public/admin/orders/index.php)
-- 変更: [ec-app/public/admin/orders/edit.php](ec-app/public/admin/orders/edit.php)
-
-表示している主な項目は注文番号、購入者、商品点数、合計金額、支払状態、配送状態、注文状態です。
-
-## ロール（役割）システム
-
-このブランチではロール管理テーブルを追加しました。
-
-- マイグレーション: [ec-app/database/006_create_roles.sql](ec-app/database/006_create_roles.sql) を実行して `roles` テーブルを作成してください（mysqladmin や phpMyAdmin を使用）。
-
-### rolesテーブルの作成手順
-
-**mysqladmin でのコピペ実行:**
+### 1. リポジトリを取得
 
 ```bash
-mysql -u root -p your_database_name
+git clone <repository-url>
+cd ec-cart-2
 ```
 
-ログイン後、以下をコピペして実行:
+### 2. データベースを作成
 
-```sql
-CREATE TABLE IF NOT EXISTS roles (
-    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+MySQL に接続して、`ec-app/database/` 配下のSQLを順番に実行します。
 
-INSERT INTO roles (name, description) VALUES
-    ('admin', '管理者（全操作可能）'),
-    ('manager', '運用担当（注文・レビュー管理など）'),
-    ('user', '一般ユーザー（購入・レビュー投稿）');
-```
+- `001_create_products.sql`
+- `002_create_skus.sql`
+- `003_create_reviews.sql`
+- `004_create_coupons.sql`
+- `005_create_admin_users.sql`
+- `006_create_roles.sql`
+- `007_create_user_roles.sql`
 
-### ロールの説明
+### 3. PAY.JP 設定を作成
 
-| ロール | 説明 |
-|--------|------|
-| `admin` | 管理者（全操作可能） |
-| `manager` | 運用担当（注文・レビュー管理など） |
-| `user` | 一般ユーザー（購入・レビュー投稿） |
+`ec-app/config/payjp.example.php` をコピーして `ec-app/config/payjp.php` を作成し、公開鍵と秘密鍵を設定します。
 
-### 初期データ
+### 4. サーバーに配置
 
-テーブル作成時に上記の3つのロール（admin, manager, user）が自動的に挿入されます。
+`ec-app/` 配下をロリポップなどの PHP 実行環境に配置してください。
 
-## アクセス制御（RBAC: Role-Based Access Control）
+---
 
-このブランチではロールベースのアクセス制御機能を追加しました。管理者にロールを付与し、ロールに基づいてアクセス権限を制御できます。
+## 補足
 
-### セットアップ
-
-1. `user_roles` テーブルを作成：
-   
-   ```bash
-   mysql -u root -p your_database_name
-   ```
-   
-   ログイン後、以下をコピペして実行:
-   
-   ```sql
-   CREATE TABLE IF NOT EXISTS user_roles (
-       id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-       user_id INT NOT NULL,
-       role_id INT UNSIGNED NOT NULL,
-       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-       UNIQUE KEY uniq_user_role (user_id, role_id),
-       FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
-       FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-       INDEX idx_user_id (user_id),
-       INDEX idx_role_id (role_id)
-   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-   ```
-
-2. 管理者にロールを付与（例：ユーザーID 1 に 'admin' ロールを付与）：
-   
-   ```sql
-   INSERT INTO user_roles (user_id, role_id)
-   SELECT 1, id FROM roles WHERE name = 'admin';
-   ```
-
-### 主要なクラス・関数
-
-- **[app/Admin/RoleManager.php](ec-app/app/Admin/RoleManager.php)** — ロール管理クラス
-  - `assignRole(int $userId, int $roleId): bool` — ロール付与
-  - `removeRole(int $userId, int $roleId): bool` — ロール削除
-  - `getUserRoles(int $userId): array` — ユーザーのロール一覧を取得
-  - `hasRole(int $userId, string $roleName): bool` — ロール所有確認
-  - `hasAnyRole(int $userId, array $roleNames): bool` — 複数ロールのいずれかを所有確認
-  - `setUserRoles(int $userId, array $roleIds): bool` — ロール一括設定
-
-- **[app/Admin/auth.php](ec-app/app/Admin/auth.php)** — アクセス制御関数
-  - `admin_require_role(PDO $pdo, string|array $requiredRoles): void` — ロール要求（指定ロール未所有時は403エラー）
-  - `admin_get_current_roles(PDO $pdo): array` — 現在のセッション管理者のロール取得
-  - `admin_has_role(PDO $pdo, string $roleName): bool` — 現在のセッション管理者のロール確認
-
-### 使用例
-
-管理者ページで特定ロール専用の機能を実装する場合：
-
-```php
-<?php
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../app/Admin/auth.php';
-
-admin_require_login();
-admin_require_role($pdo, 'admin'); // 'admin' ロールが必須
-
-// この先のコードは 'admin' ロールを持つユーザーのみ実行
-
-// または複数ロールのいずれかを許可:
-// admin_require_role($pdo, ['admin', 'manager']);
-?>
-```
-
-セッション管理者がロールを持つかチェック:
-
-```php
-<?php
-if (admin_has_role($pdo, 'manager')) {
-    // マネージャー限定の操作
-}
-
-$currentRoles = admin_get_current_roles($pdo);
-// $currentRoles = [['id' => 1, 'name' => 'admin', 'description' => '...'], ...]
-?>
-```
+- `config/payjp.php` は Git 管理外です。
+- 管理画面は `ec-app/public/admin/` 配下にあります。
+- ロールベースのアクセス制御は `ec-app/app/Admin/RoleManager.php` と `ec-app/app/Admin/auth.php` で扱います。
