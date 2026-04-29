@@ -89,3 +89,66 @@ function admin_require_login(): void
         exit;
     }
 }
+
+/**
+ * ロールベースのアクセス制御をチェック
+ * 指定されたロールのいずれかを持つ管理者のみアクセス可能
+ * 
+ * @param PDO $pdo データベース接続
+ * @param string|array $requiredRoles 必要なロール名（文字列または配列）
+ * @throws RuntimeException ロール確認に失敗した場合
+ */
+function admin_require_role(PDO $pdo, $requiredRoles): void
+{
+    admin_require_login();
+
+    $adminId = (int)$_SESSION['admin_id'];
+    $roles = is_string($requiredRoles) ? [$requiredRoles] : (array)$requiredRoles;
+
+    require_once __DIR__ . '/RoleManager.php';
+    $roleManager = new RoleManager($pdo);
+
+    if (!$roleManager->hasAnyRole($adminId, $roles)) {
+        http_response_code(403);
+        exit('アクセス権がありません。');
+    }
+}
+
+/**
+ * 現在のセッション管理者のロール一覧を取得
+ * 
+ * @param PDO $pdo データベース接続
+ * @return array ロール情報の配列
+ */
+function admin_get_current_roles(PDO $pdo): array
+{
+    admin_session_start();
+
+    if (!isset($_SESSION['admin_id']) || (int)$_SESSION['admin_id'] <= 0) {
+        return [];
+    }
+
+    require_once __DIR__ . '/RoleManager.php';
+    $roleManager = new RoleManager($pdo);
+    return $roleManager->getUserRoles((int)$_SESSION['admin_id']);
+}
+
+/**
+ * 現在のセッション管理者がロールを持つかチェック
+ * 
+ * @param PDO $pdo データベース接続
+ * @param string $roleName ロール名
+ * @return bool ロールを持つ場合 true
+ */
+function admin_has_role(PDO $pdo, string $roleName): bool
+{
+    admin_session_start();
+
+    if (!isset($_SESSION['admin_id']) || (int)$_SESSION['admin_id'] <= 0) {
+        return false;
+    }
+
+    require_once __DIR__ . '/RoleManager.php';
+    $roleManager = new RoleManager($pdo);
+    return $roleManager->hasRole((int)$_SESSION['admin_id'], $roleName);
+}

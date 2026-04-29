@@ -125,3 +125,85 @@ INSERT INTO roles (name, description) VALUES
 ### 初期データ
 
 テーブル作成時に上記の3つのロール（admin, manager, user）が自動的に挿入されます。
+
+## アクセス制御（RBAC: Role-Based Access Control）
+
+このブランチではロールベースのアクセス制御機能を追加しました。管理者にロールを付与し、ロールに基づいてアクセス権限を制御できます。
+
+### セットアップ
+
+1. `user_roles` テーブルを作成：
+   
+   ```bash
+   mysql -u root -p your_database_name
+   ```
+   
+   ログイン後、以下をコピペして実行:
+   
+   ```sql
+   CREATE TABLE IF NOT EXISTS user_roles (
+       id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+       user_id INT NOT NULL,
+       role_id INT UNSIGNED NOT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE KEY uniq_user_role (user_id, role_id),
+       FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+       FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+       INDEX idx_user_id (user_id),
+       INDEX idx_role_id (role_id)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+   ```
+
+2. 管理者にロールを付与（例：ユーザーID 1 に 'admin' ロールを付与）：
+   
+   ```sql
+   INSERT INTO user_roles (user_id, role_id)
+   SELECT 1, id FROM roles WHERE name = 'admin';
+   ```
+
+### 主要なクラス・関数
+
+- **[app/Admin/RoleManager.php](ec-app/app/Admin/RoleManager.php)** — ロール管理クラス
+  - `assignRole(int $userId, int $roleId): bool` — ロール付与
+  - `removeRole(int $userId, int $roleId): bool` — ロール削除
+  - `getUserRoles(int $userId): array` — ユーザーのロール一覧を取得
+  - `hasRole(int $userId, string $roleName): bool` — ロール所有確認
+  - `hasAnyRole(int $userId, array $roleNames): bool` — 複数ロールのいずれかを所有確認
+  - `setUserRoles(int $userId, array $roleIds): bool` — ロール一括設定
+
+- **[app/Admin/auth.php](ec-app/app/Admin/auth.php)** — アクセス制御関数
+  - `admin_require_role(PDO $pdo, string|array $requiredRoles): void` — ロール要求（指定ロール未所有時は403エラー）
+  - `admin_get_current_roles(PDO $pdo): array` — 現在のセッション管理者のロール取得
+  - `admin_has_role(PDO $pdo, string $roleName): bool` — 現在のセッション管理者のロール確認
+
+### 使用例
+
+管理者ページで特定ロール専用の機能を実装する場合：
+
+```php
+<?php
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../app/Admin/auth.php';
+
+admin_require_login();
+admin_require_role($pdo, 'admin'); // 'admin' ロールが必須
+
+// この先のコードは 'admin' ロールを持つユーザーのみ実行
+
+// または複数ロールのいずれかを許可:
+// admin_require_role($pdo, ['admin', 'manager']);
+?>
+```
+
+セッション管理者がロールを持つかチェック:
+
+```php
+<?php
+if (admin_has_role($pdo, 'manager')) {
+    // マネージャー限定の操作
+}
+
+$currentRoles = admin_get_current_roles($pdo);
+// $currentRoles = [['id' => 1, 'name' => 'admin', 'description' => '...'], ...]
+?>
+```
