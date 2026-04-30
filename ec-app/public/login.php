@@ -4,7 +4,7 @@ $activePage = 'login';
 
 require_once __DIR__ . '/../app/Auth/session.php';
 app_session_start();
-require_once __DIR__ . '/../config/database.php';
+$pdo = require __DIR__ . '/../config/database.php';
 
 $errorMessage = '';
 $noticeMessage = '';

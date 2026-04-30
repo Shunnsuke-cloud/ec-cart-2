@@ -2,7 +2,7 @@
 $pageTitle = 'レビュー一覧';
 $activePage = '';
 
-require_once __DIR__ . '/../config/database.php';
+$pdo = require __DIR__ . '/../config/database.php';
 
 $productSlug = isset($_GET['product']) ? trim((string)$_GET['product']) : '';
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;

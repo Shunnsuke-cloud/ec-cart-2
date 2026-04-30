@@ -3,10 +3,12 @@ $pageTitle = '商品管理';
 
 require_once __DIR__ . '/../../../app/Admin/auth.php';
 admin_require_login();
-require_once __DIR__ . '/../../../config/database.php';
+$pdo = require __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/../../../app/Admin/csv.php';
 
 $errorMessage = '';
 $noticeMessage = '';
+$isCsvExport = isset($_GET['export']) && $_GET['export'] === 'csv';
 
 if (isset($_GET['created']) && $_GET['created'] === '1') {
     $noticeMessage = '商品を登録しました。';
@@ -41,6 +43,29 @@ ORDER BY p.created_at DESC, p.id DESC
 SQL;
     $stmt = $pdo->query($sql);
     $products = $stmt->fetchAll();
+
+    if ($isCsvExport) {
+        $csvRows = [];
+        foreach ($products as $product) {
+            $csvRows[] = [
+                'id' => (string)$product['id'],
+                'name' => (string)$product['name'],
+                'slug' => (string)$product['slug'],
+                'brand' => (string)($product['brand'] ?? ''),
+                'status' => (string)$product['status'],
+                'variant_count' => (string)$product['variant_count'],
+                'total_stock' => (string)$product['total_stock'],
+                'created_at' => (string)$product['created_at'],
+                'updated_at' => (string)$product['updated_at'],
+            ];
+        }
+
+        admin_output_csv(
+            ['ID', '商品名', 'スラッグ', 'ブランド', '状態', 'SKU数', '在庫合計', '作成日時', '更新日時'],
+            $csvRows,
+            'products_' . date('Ymd_His') . '.csv'
+        );
+    }
 } catch (Throwable $e) {
     $errorMessage = '商品一覧の取得に失敗しました。';
 }
@@ -61,6 +86,7 @@ SQL;
 
                 <p class="product-actions">
                     <a class="button" href="new.php">新規商品を追加</a>
+                    <a class="button" href="?export=csv">CSV出力</a>
                     <a class="button" href="../index.php">管理画面に戻る</a>
                 </p>
 

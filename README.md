@@ -38,6 +38,7 @@
 - 商品管理
 - 注文管理
 - レビュー管理（承認・却下・削除）
+- 注文一覧から発送対象を選択して佐川e飛伝形式でCSV出力
 - ロール管理とアクセス制御
 
 ---
@@ -138,7 +139,6 @@
 
 - 配送管理機能の拡張
 - 売上分析画面の追加
-- CSV出力機能の拡充
 - テストコードの整備
 - 監査ログの追加
 
@@ -168,6 +168,8 @@ MySQL に接続して、`ec-app/database/` 配下のSQLを順番に実行しま�
 ### 3. PAY.JP 設定を作成
 
 `ec-app/config/payjp.example.php` をコピーして `ec-app/config/payjp.php` を作成し、公開鍵と秘密鍵を設定します。
+
+`ec-app/config/app.local.php.example` もコピーして `ec-app/config/app.local.php` を作成し、DB接続情報を設定します。
 
 ### 4. サーバーに配置
 

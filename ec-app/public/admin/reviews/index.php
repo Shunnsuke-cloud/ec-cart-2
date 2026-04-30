@@ -3,13 +3,15 @@ $pageTitle = 'レビュー管理';
 
 require_once __DIR__ . '/../../../app/Admin/auth.php';
 admin_require_login();
-require_once __DIR__ . '/../../../config/database.php';
+$pdo = require __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/../../../app/Admin/csv.php';
 
 $noticeMessage = '';
 $errorMessage = '';
 $statusFilter = isset($_GET['status']) ? trim((string)$_GET['status']) : '';
 $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = 20;
+$isCsvExport = isset($_GET['export']) && $_GET['export'] === 'csv';
 
 $reviews = [];
 $totalReviews = 0;
@@ -84,6 +86,69 @@ SQL;
     $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
     $stmt->execute();
     $reviews = $stmt->fetchAll();
+
+    if ($isCsvExport) {
+        $exportSql = <<<'SQL'
+SELECT
+    r.id,
+    r.user_id,
+    r.product_id,
+    r.rating,
+    r.title,
+    r.comment,
+    r.status,
+    r.created_at,
+    r.updated_at,
+    u.name AS user_name,
+    u.email AS user_email,
+    p.name AS product_name,
+    p.slug AS product_slug
+FROM reviews r
+LEFT JOIN users u ON u.id = r.user_id
+LEFT JOIN products p ON p.id = r.product_id
+SQL;
+
+        if ($statusFilter !== '') {
+            $exportSql .= ' WHERE r.status = :status';
+        }
+
+        $exportSql .= ' ORDER BY r.created_at DESC, r.id DESC';
+
+        $stmtExport = $pdo->prepare($exportSql);
+        if ($statusFilter !== '') {
+            $stmtExport->bindValue(':status', $statusFilter, PDO::PARAM_STR);
+        }
+        $stmtExport->execute();
+        $exportReviews = $stmtExport->fetchAll();
+
+        $csvRows = [];
+        foreach ($exportReviews as $review) {
+            $csvRows[] = [
+                'user_name' => (string)($review['user_name'] ?? 'N/A'),
+                'user_email' => (string)($review['user_email'] ?? ''),
+                'product_name' => (string)($review['product_name'] ?? ''),
+                'product_slug' => (string)($review['product_slug'] ?? ''),
+                'rating' => (string)$review['rating'],
+                'title' => (string)$review['title'],
+                'comment' => (string)$review['comment'],
+                'status' => (string)$review['status'],
+                'created_at' => (string)$review['created_at'],
+                'updated_at' => (string)$review['updated_at'],
+            ];
+        }
+
+        $filename = 'reviews';
+        if ($statusFilter !== '') {
+            $filename .= '_' . $statusFilter;
+        }
+        $filename .= '_' . date('Ymd_His') . '.csv';
+
+        admin_output_csv(
+            ['ユーザー名', 'ユーザーメール', '商品名', '商品スラッグ', '評価', 'タイトル', 'コメント', 'ステータス', '作成日', '更新日'],
+            $csvRows,
+            $filename
+        );
+    }
 } catch (Throwable $e) {
     $errorMessage = 'レビュー一覧の取得に失敗しました。';
 }
@@ -230,6 +295,7 @@ function getStatusClass(string $status): string
                 <h2>レビュー管理</h2>
                 <p class="product-actions">
                     <a class="button" href="../index.php">管理画面に戻る</a>
+                    <a class="button" href="?status=<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>&amp;export=csv">CSV出力</a>
                 </p>
 
                 <?php if ($noticeMessage !== ''): ?>
