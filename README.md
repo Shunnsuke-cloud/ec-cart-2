@@ -39,6 +39,7 @@
 - 注文管理
 - レビュー管理（承認・却下・削除）
 - 注文一覧から発送対象を選択して佐川e飛伝形式でCSV出力
+- 注文編集から発送通知メールを送信
 - ロール管理とアクセス制御
 
 ---
@@ -164,6 +165,8 @@ MySQL に接続して、`ec-app/database/` 配下のSQLを順番に実行しま�
 - `005_create_admin_users.sql`
 - `006_create_roles.sql`
 - `007_create_user_roles.sql`
+- `008_add_tracking.sql`
+- `009_add_shipping_notified_at.sql`
 
 ### 3. PAY.JP 設定を作成
 

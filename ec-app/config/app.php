@@ -7,6 +7,10 @@ $config = [
 		'public_key' => '',
 		'secret_key' => '',
 	],
+	'mail' => [
+		'from_name' => 'EC Cart',
+		'from_address' => 'noreply@example.local',
+	],
 ];
 
 $localConfigPath = __DIR__ . '/app.local.php';
