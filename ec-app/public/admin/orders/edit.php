@@ -35,6 +35,8 @@ $form = [
     'status' => '',
     'payment_status' => '',
     'shipping_status' => '',
+    'tracking_number' => '',
+    'shipped_at' => '',
 ];
 
 if ($id <= 0) {
@@ -49,6 +51,8 @@ SELECT
     o.status,
     o.payment_status,
     o.shipping_status,
+    o.tracking_number,
+    o.shipped_at,
     o.subtotal,
     o.shipping_fee,
     o.discount_amount,
@@ -84,6 +88,8 @@ SQL
             if (!array_key_exists($form['shipping_status'], $shippingStatuses)) {
                 throw new RuntimeException('配送状態の値が不正です。');
             }
+               $form['tracking_number'] = trim((string)($_POST['tracking_number'] ?? ''));
+               $shipped_at_input = trim((string)($_POST['shipped_at'] ?? ''));
 
             $stmtUpdate = $pdo->prepare(
                 <<<'SQL'
@@ -91,6 +97,8 @@ UPDATE orders
 SET status = :status,
     payment_status = :payment_status,
     shipping_status = :shipping_status,
+       tracking_number = :tracking_number,
+       shipped_at = :shipped_at,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = :id
 SQL
@@ -100,6 +108,8 @@ SQL
                 'payment_status' => $form['payment_status'],
                 'shipping_status' => $form['shipping_status'],
                 'id' => $id,
+                   'tracking_number' => $form['tracking_number'] !== '' ? $form['tracking_number'] : null,
+                   'shipped_at' => $shipped_at_input !== '' ? $shipped_at_input : null,
             ]);
 
             header('Location: index.php?updated=1');
@@ -109,6 +119,11 @@ SQL
         $form['status'] = (string)$order['status'];
         $form['payment_status'] = (string)$order['payment_status'];
         $form['shipping_status'] = (string)$order['shipping_status'];
+        $form['tracking_number'] = (string)($order['tracking_number'] ?? '');
+        if (!empty($order['shipped_at'])) {
+            // convert to datetime-local format (YYYY-MM-DDTHH:MM)
+            $form['shipped_at'] = str_replace(' ', 'T', substr($order['shipped_at'], 0, 16));
+        }
 
         $stmtItems = $pdo->prepare(
             <<<'SQL'
@@ -213,6 +228,10 @@ SQL
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                           <label for="tracking_number">追跡番号</label>
+                           <input type="text" id="tracking_number" name="tracking_number" value="<?php echo htmlspecialchars($form['tracking_number'], ENT_QUOTES, 'UTF-8'); ?>">
+                           <label for="shipped_at">発送日時</label>
+                           <input type="datetime-local" id="shipped_at" name="shipped_at" value="<?php echo htmlspecialchars($form['shipped_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
                         <button class="button" type="submit">更新する</button>
                     </form>

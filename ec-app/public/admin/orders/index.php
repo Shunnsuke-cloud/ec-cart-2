@@ -34,6 +34,8 @@ SELECT
     o.status,
     o.payment_status,
     o.shipping_status,
+    o.tracking_number,
+    o.shipped_at,
     o.subtotal,
     o.shipping_fee,
     o.discount_amount,
@@ -54,6 +56,10 @@ GROUP BY
     o.status,
     o.payment_status,
     o.shipping_status,
+    o.tracking_number,
+    o.shipped_at,
+    o.tracking_number,
+    o.shipped_at,
     o.subtotal,
     o.shipping_fee,
     o.discount_amount,
@@ -186,6 +192,8 @@ ORDER BY o.created_at ASC, o.id ASC
                                     <th>金額</th>
                                     <th>支払</th>
                                     <th>配送</th>
+                                    <th>追跡番号</th>
+                                    <th>発送日時</th>
                                     <th>状態</th>
                                     <th>作成日時</th>
                                     <th>操作</th>
@@ -211,6 +219,8 @@ ORDER BY o.created_at ASC, o.id ASC
                                         <td><?php echo number_format((int)$order['total_amount']); ?>円</td>
                                         <td><?php echo htmlspecialchars((string)$order['payment_status'], ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><?php echo htmlspecialchars((string)$order['shipping_status'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($order['tracking_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($order['shipped_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><?php echo htmlspecialchars((string)$order['status'], ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><?php echo htmlspecialchars((string)$order['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><a href="edit.php?id=<?php echo (int)$order['id']; ?>">変更</a></td>
