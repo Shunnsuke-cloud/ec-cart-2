@@ -2,7 +2,7 @@
 $pageTitle = '商品詳細';
 $activePage = 'product';
 
-require_once __DIR__ . '/../config/database.php';
+$pdo = require __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../app/Auth/session.php';
 app_session_start();
 

@@ -3,7 +3,7 @@ $pageTitle = '商品新規作成';
 
 require_once __DIR__ . '/../../../app/Admin/auth.php';
 admin_require_login();
-require_once __DIR__ . '/../../../config/database.php';
+$pdo = require __DIR__ . '/../../../config/database.php';
 
 $errorMessage = '';
 $form = [

@@ -3,7 +3,7 @@ $pageTitle = 'レビュー管理';
 
 require_once __DIR__ . '/../../../app/Admin/auth.php';
 admin_require_login();
-require_once __DIR__ . '/../../../config/database.php';
+$pdo = require __DIR__ . '/../../../config/database.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $action = isset($_GET['action']) ? trim((string)$_GET['action']) : '';

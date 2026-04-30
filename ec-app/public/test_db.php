@@ -1,7 +1,7 @@
 <?php
 // これを使ってください
 
-require_once __DIR__ . '/../config/database.php';
+$pdo = require __DIR__ . '/../config/database.php';
 
 $pageTitle = 'DB接続テスト';
 $activePage = '';

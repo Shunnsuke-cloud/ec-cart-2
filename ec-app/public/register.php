@@ -2,7 +2,7 @@
 $pageTitle = '会員登録';
 $activePage = 'register';
 
-require_once __DIR__ . '/../config/database.php';
+$pdo = require __DIR__ . '/../config/database.php';
 
 $errorMessage = '';
 $noticeMessage = '';
