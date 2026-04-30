@@ -17,4 +17,9 @@ return [
         'public_key' => 'your-payjp-public-key',
         'secret_key' => 'your-payjp-secret-key',
     ],
+    'mail' => [
+        // Replace with your own sender settings on the server.
+        'from_name' => 'EC Cart',
+        'from_address' => 'noreply@example.local',
+    ],
 ];

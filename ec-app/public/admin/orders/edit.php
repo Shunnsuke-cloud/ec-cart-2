@@ -4,10 +4,13 @@ $pageTitle = '注文ステータス変更';
 require_once __DIR__ . '/../../../app/Admin/auth.php';
 admin_require_login();
 $pdo = require __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/../../../app/Admin/shipping_notification.php';
+$config = require __DIR__ . '/../../../config/app.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $errorMessage = '';
 $formErrorMessage = '';
+$noticeMessage = '';
 $order = null;
 $orderItems = [];
 
@@ -53,6 +56,7 @@ SELECT
     o.shipping_status,
     o.tracking_number,
     o.shipped_at,
+    o.shipping_notified_at,
     o.subtotal,
     o.shipping_fee,
     o.discount_amount,
@@ -75,6 +79,7 @@ SQL
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $action = trim((string)($_POST['action'] ?? 'save'));
             $form['status'] = trim((string)($_POST['status'] ?? ''));
             $form['payment_status'] = trim((string)($_POST['payment_status'] ?? ''));
             $form['shipping_status'] = trim((string)($_POST['shipping_status'] ?? ''));
@@ -88,8 +93,18 @@ SQL
             if (!array_key_exists($form['shipping_status'], $shippingStatuses)) {
                 throw new RuntimeException('配送状態の値が不正です。');
             }
-               $form['tracking_number'] = trim((string)($_POST['tracking_number'] ?? ''));
-               $shipped_at_input = trim((string)($_POST['shipped_at'] ?? ''));
+            $form['tracking_number'] = trim((string)($_POST['tracking_number'] ?? ''));
+            $shipped_at_input = trim((string)($_POST['shipped_at'] ?? ''));
+            if ($action === 'send_shipping_notification' && $form['shipping_status'] !== 'shipped') {
+                throw new RuntimeException('発送通知を送るには配送状態を「発送済み」にしてください。');
+            }
+            $shipped_at = null;
+            if ($shipped_at_input !== '') {
+                $shipped_at = str_replace('T', ' ', $shipped_at_input);
+                if (strlen($shipped_at) === 16) {
+                    $shipped_at .= ':00';
+                }
+            }
 
             $stmtUpdate = $pdo->prepare(
                 <<<'SQL'
@@ -97,8 +112,8 @@ UPDATE orders
 SET status = :status,
     payment_status = :payment_status,
     shipping_status = :shipping_status,
-       tracking_number = :tracking_number,
-       shipped_at = :shipped_at,
+    tracking_number = :tracking_number,
+    shipped_at = :shipped_at,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = :id
 SQL
@@ -108,12 +123,22 @@ SQL
                 'payment_status' => $form['payment_status'],
                 'shipping_status' => $form['shipping_status'],
                 'id' => $id,
-                   'tracking_number' => $form['tracking_number'] !== '' ? $form['tracking_number'] : null,
-                   'shipped_at' => $shipped_at_input !== '' ? $shipped_at_input : null,
+                'tracking_number' => $form['tracking_number'] !== '' ? $form['tracking_number'] : null,
+                'shipped_at' => $shipped_at,
             ]);
 
-            header('Location: index.php?updated=1');
-            exit;
+            if ($action === 'send_shipping_notification') {
+                [$sent, $message] = admin_send_shipping_notification($pdo, is_array($config['mail'] ?? null) ? $config['mail'] : [], $id);
+                if (!$sent) {
+                    $formErrorMessage = $message;
+                } else {
+                    header('Location: edit.php?id=' . $id . '&notified=1');
+                    exit;
+                }
+            } else {
+                header('Location: index.php?updated=1');
+                exit;
+            }
         }
 
         $form['status'] = (string)$order['status'];
@@ -144,6 +169,10 @@ SQL
         $errorMessage = $e instanceof RuntimeException ? $e->getMessage() : '注文情報の取得・更新に失敗しました。';
     }
 }
+
+if (isset($_GET['notified']) && $_GET['notified'] === '1') {
+    $noticeMessage = '発送通知メールを送信しました。';
+}
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -165,11 +194,15 @@ SQL
                 <?php if ($errorMessage !== ''): ?>
                     <p class="notice error"><?php echo htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php elseif ($order !== null): ?>
+                    <?php if ($noticeMessage !== ''): ?>
+                        <p class="notice"><?php echo htmlspecialchars($noticeMessage, ENT_QUOTES, 'UTF-8'); ?></p>
+                    <?php endif; ?>
                     <div class="order-summary">
                         <h3><?php echo htmlspecialchars((string)$order['order_number'], ENT_QUOTES, 'UTF-8'); ?></h3>
                         <p>購入者: <?php echo htmlspecialchars((string)($order['user_name'] ?? 'ゲスト'), ENT_QUOTES, 'UTF-8'); ?> / <?php echo htmlspecialchars((string)($order['user_email'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></p>
                         <p>合計: <?php echo number_format((int)$order['total_amount']); ?>円</p>
                         <p>作成日時: <?php echo htmlspecialchars((string)$order['created_at'], ENT_QUOTES, 'UTF-8'); ?></p>
+                        <p>発送通知: <?php echo !empty($order['shipping_notified_at']) ? htmlspecialchars((string)$order['shipping_notified_at'], ENT_QUOTES, 'UTF-8') : '未送信'; ?></p>
                     </div>
 
                     <?php if (!empty($orderItems)): ?>
@@ -233,7 +266,10 @@ SQL
                            <label for="shipped_at">発送日時</label>
                            <input type="datetime-local" id="shipped_at" name="shipped_at" value="<?php echo htmlspecialchars($form['shipped_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
-                        <button class="button" type="submit">更新する</button>
+                        <div class="product-actions">
+                            <button class="button" type="submit" name="action" value="save">更新する</button>
+                            <button class="button" type="submit" name="action" value="send_shipping_notification">発送通知を送る</button>
+                        </div>
                     </form>
                 <?php endif; ?>
             </section>
