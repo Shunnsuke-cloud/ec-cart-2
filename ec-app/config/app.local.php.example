@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'database' => [
+        // Replace with your own database settings on the server.
+        'host' => '127.0.0.1',
+        'port' => 3306,
+        'name' => 'ec_cart',
+        'user' => 'ec_user',
+        'password' => 'change-me',
+        'charset' => 'utf8mb4',
+    ],
+    'payjp' => [
+        // Replace with your own keys on the server.
+        'public_key' => 'your-payjp-public-key',
+        'secret_key' => 'your-payjp-secret-key',
+    ],
+    'mail' => [
+        // Replace with your own sender settings on the server.
+        'from_name' => 'EC Cart',
+        'from_address' => 'noreply@example.local',
+    ],
+];
