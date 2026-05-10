@@ -155,7 +155,8 @@ ORDER BY o.created_at ASC, o.id ASC
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8'); ?> | EC Cart Admin</title>
-    <link rel="stylesheet" href="../../css/common.css">
+    <base href="/cart-system/">
+    <link rel="stylesheet" href="css/common.css">
 </head>
 <body>
     <main class="site-main">

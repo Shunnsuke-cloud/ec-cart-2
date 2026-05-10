@@ -14,6 +14,7 @@ $loginUserName = isset($_SESSION['user_name']) ? (string)$_SESSION['user_name'] 
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title><?php echo htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8'); ?> | EC Cart</title>
+	<base href="/cart-system/">
 	<link rel="stylesheet" href="css/common.css">
 </head>
 <body>
